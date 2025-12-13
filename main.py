@@ -1,3 +1,5 @@
+#!/home/alex/code/python/gpv/.venv/bin/python
+# -*- coding: utf-8 -*-
 import requests
 from bs4 import BeautifulSoup
 from dataclasses import dataclass
@@ -41,7 +43,7 @@ def load_shortages() -> list[Shortage]:
         response.raise_for_status() 
         html_content = response.text
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching URL: {e}")
+        print("OFF|Ошибка сети")
         exit()
 
     soup = BeautifulSoup(html_content, 'html.parser')
