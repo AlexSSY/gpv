@@ -70,10 +70,10 @@ def load_shortages() -> list[Shortage]:
                 start = date + timedelta(seconds=idx * 30 * 60)
                 continue
             if n == 3:
-                soft_finish = date + timedelta(seconds=idx * 30 * 60)
+                soft_finish = date + timedelta(seconds=max(idx -1, 0) * 30 * 60)
                 continue
             if n == 1 and start:
-                hard_finish = date + timedelta(seconds=idx * 30 * 60)
+                hard_finish = date + timedelta(seconds=(idx - 1) * 30 * 60)
                 shortages.append(
                     Shortage(start, hard_finish, soft_finish is not None)
                 )
