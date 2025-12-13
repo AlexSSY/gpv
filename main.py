@@ -75,12 +75,14 @@ def load_shortages() -> list[Shortage]:
                 shortages.append(
                     Shortage(start, hard_finish, soft_finish is not None)
                 )
+                start = None
+                soft_finish = None
     
     if start:
         date = list(date_numbers.keys())[-1]
         hard_finish = date + timedelta(seconds=48 * 30 * 60)
         shortages.append(
-            Shortage(start, hard_finish, soft_finish)
+            Shortage(start, hard_finish, soft_finish is not None)
         )
 
     return shortages
@@ -95,12 +97,13 @@ if __name__ == "__main__":
     shortages = load_shortages()
     current_shortage = next((m for m in shortages if now < m.end and now > m.start ), None)
 
-    shortages_with_delta: dict[datetime, Shortage] = {}
+    shortages_with_delta: dict[int, Shortage] = {}
 
     for shortage in shortages:
         if now > shortage.start:
             continue
-        shortages_with_delta[shortage.start - now] = shortage
+        delta_seconds = int((shortage.start - now).total_seconds())
+        shortages_with_delta[delta_seconds] = shortage
 
     if current_shortage is None:
         min_distance = min(shortages_with_delta.keys())
