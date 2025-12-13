@@ -11,7 +11,7 @@ class Shortage:
     has_yellow: bool
 
 
-MONTHS = {
+MONTHS: dict[str, int] = {
   "січня": 1,
   "лютого": 2,
   "березня": 3,
