@@ -1,16 +1,22 @@
 #!/home/alex/code/python/gpv/.venv/bin/python
 # -*- coding: utf-8 -*-
 import requests
+from pydantic import BaseModel, Field, ConfigDict
 from bs4 import BeautifulSoup
-from dataclasses import dataclass
 from datetime import datetime, timedelta, time
 
 
-@dataclass
-class Shortage:
+class Shortage(BaseModel):
     start: datetime
-    end: datetime
-    has_yellow: bool
+    soft: datetime | None
+    hard: datetime
+
+
+class Result(BaseModel):
+    from_: datetime = Field(validation_alias='from', serialization_alias='from')
+    to: datetime
+    shortages: list[Shortage]
+    model_config = ConfigDict(populate_by_name=True) 
 
 
 MONTHS: dict[str, int] = {
@@ -65,62 +71,97 @@ def load_shortages() -> list[Shortage]:
     shortages = []
 
     start = None
-    soft_finish = None
     for date, numbers in date_numbers.items():
         for idx, n in enumerate(numbers):
             if n == 2 and start is None:
                 start = date + timedelta(seconds=idx * 30 * 60)
                 continue
+
             if n == 3 and start:
-                soft_finish = date + timedelta(seconds=idx * 30 * 60)
-                hard_finish = date + timedelta(seconds=(idx + 1) * 30 * 60)
-                shortages.append(Shortage(start, hard_finish, soft_finish is not None))
+                soft = date + timedelta(seconds=idx * 30 * 60)
+                hard = date + timedelta(seconds=(idx + 1) * 30 * 60)
+                shortages.append(Shortage(start=start, soft=soft, hard=hard))
                 start = None
-                soft_finish = None
                 continue
+
             if n == 1 and start:
-                hard_finish = date + timedelta(seconds=(idx + 1) * 30 * 60)
-                shortages.append(Shortage(start, hard_finish, False))
+                hard = date + timedelta(seconds=(idx + 1) * 30 * 60)
+                shortages.append(Shortage(start=start, soft=None, hard=hard))
                 start = None
-                soft_finish = None
 
     if start:
         date = list(date_numbers.keys())[-1]
-        hard_finish = date + timedelta(seconds=48 * 30 * 60)
-        shortages.append(Shortage(start, hard_finish, soft_finish is not None))
+        hard = date + timedelta(seconds=48 * 30 * 60)
+        shortages.append(Shortage(start=start, soft=None, hard=hard))
 
     return shortages
 
 
-# OK|Свет есть до 01:30
-# OFF|Света нет, может появиться в 06:00
-# UNCERTAIN|Точно будет в 06:30
+# {
+#   "from": "2025-12-12T00:00:00+02:00",
+#   "to":   "2025-12-13T00:00:00+02:00",
+#   "shortages": [
+#     {
+#       "start": "2025-12-12T01:30:00+02:00",
+#       "soft":  "2025-12-12T06:00:00+02:00",
+#       "hard":  "2025-12-12T06:30:00+02:00"
+#     }
+#   ]
+# }
 if __name__ == "__main__":
-    now = datetime.now()
-
     shortages = load_shortages()
-    current_shortage = next(
-        (m for m in shortages if now < m.end and now > m.start), None
+
+    first_shortage_start = shortages[0].start
+    last_shortage_hard = shortages[-1].hard
+
+    start_timeline = datetime(
+        year=first_shortage_start.year,
+        month=first_shortage_start.month,
+        day=first_shortage_start.day,
     )
 
-    shortages_with_delta: dict[int, Shortage] = {}
+    end_timeline = datetime(
+        year=last_shortage_hard.year,
+        month=last_shortage_hard.month,
+        day=last_shortage_hard.day,
+        hour=23,
+        minute=59,
+        second=59,
+        microsecond=999999
+    )
 
-    for shortage in shortages:
-        if now > shortage.start:
-            continue
-        delta_seconds = int((shortage.start - now).total_seconds())
-        shortages_with_delta[delta_seconds] = shortage
+    result = Result(
+        from_=start_timeline,
+        to=end_timeline,
+        shortages=shortages
+    )
+    
+    print(result.model_dump_json(by_alias=True))
+    # now = datetime.now()
 
-    if current_shortage is None:
-        min_distance = min(shortages_with_delta.keys())
-        closest_shortage = shortages_with_delta[min_distance]
+    # shortages = load_shortages()
+    # current_shortage = next(
+    #     (m for m in shortages if now < m.end and now > m.start), None
+    # )
 
-    if current_shortage is None:
-        print(f"OK|Свет есть до {closest_shortage.start.strftime('%H:%M')}")
-    else:
-        if current_shortage.has_yellow:
-            print(
-                f"OFF|Света нет, может появиться в {(current_shortage.end - timedelta(minutes=30)).strftime('%H:%M')}"
-            )
-        else:
-            print(f"UNCERTAIN|Точно будет в {current_shortage.end.strftime('%H:%M')}")
+    # shortages_with_delta: dict[int, Shortage] = {}
+
+    # for shortage in shortages:
+    #     if now > shortage.start:
+    #         continue
+    #     delta_seconds = int((shortage.start - now).total_seconds())
+    #     shortages_with_delta[delta_seconds] = shortage
+
+    # if current_shortage is None:
+    #     min_distance = min(shortages_with_delta.keys())
+    #     closest_shortage = shortages_with_delta[min_distance]
+
+    # if current_shortage is None:
+    #     print(f"OK|Свет есть до {closest_shortage.start.strftime('%H:%M')}")
+    # else:
+    #     if current_shortage.has_yellow:
+    #         print(
+    #             f"OFF|Света нет, может появиться в {(current_shortage.end - timedelta(minutes=30)).strftime('%H:%M')}"
+    #         )
+    #     else:
+    #         print(f"UNCERTAIN|Точно будет в {current_shortage.end.strftime('%H:%M')}")
