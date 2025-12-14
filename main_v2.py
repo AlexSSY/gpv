@@ -1,22 +1,27 @@
 #!/home/alex/code/python/gpv/.venv/bin/python
 # -*- coding: utf-8 -*-
+import enum
 import requests
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, time
 
 
-class Shortage(BaseModel):
-    start: datetime
-    soft: datetime | None
-    hard: datetime
+class State(str, enum.Enum):
+    GREEN = "green"
+    YELLOW = "yellow"
+    RED = "red"
+
+
+class Slot(BaseModel):
+    time: datetime
+    state: State
 
 
 class Result(BaseModel):
-    from_: datetime = Field(validation_alias='from', serialization_alias='from')
-    to: datetime
-    shortages: list[Shortage]
-    model_config = ConfigDict(populate_by_name=True) 
+    slot_minutes: datetime
+    now: datetime
+    slots: list[Slot]
 
 
 MONTHS: dict[str, int] = {
@@ -41,16 +46,21 @@ def parse_ua_date(string: str) -> time:
     return datetime(int(year), month, int(day))
 
 
-def load_shortages() -> list[Shortage]:
+def load_shortages() -> list[Slot]:
     url = "https://www.poe.pl.ua/customs/dynamicgpv-info.php"
+
+    shortages = []
 
     try:
         response = requests.get(url)
         response.raise_for_status()
         html_content = response.text
-    except requests.exceptions.RequestException as e:
-        print("OFF|Ошибка сети")
+    except requests.exceptions.RequestException:
         exit()
+    else:
+        pass
+
+    return shortages
 
     soup = BeautifulSoup(html_content, "html.parser")
 
