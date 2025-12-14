@@ -76,6 +76,7 @@ def load_slots() -> list[Slot]:
             ]
             date_numbers[date] = numbers
 
+        counter = 0
         for date, numbers in date_numbers.items():
             for idx, n in enumerate(numbers):
                 time = date + timedelta(seconds=idx * 30 * 60)
@@ -87,7 +88,8 @@ def load_slots() -> list[Slot]:
                     case 3:
                         state = State.YELLOW
 
-                slots.append(Slot(time=time, state=state, i=idx))
+                slots.append(Slot(time=time, state=state, i=counter))
+                counter += 1
 
     return slots
 
