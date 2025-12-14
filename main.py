@@ -124,10 +124,10 @@ if __name__ == "__main__":
         year=last_shortage_hard.year,
         month=last_shortage_hard.month,
         day=last_shortage_hard.day,
-        # hour=23,
-        # minute=59,
-        # second=59,
-        # microsecond=999999
+        hour=23,
+        minute=59,
+        second=59,
+        microsecond=999999
     )
 
     result = Result(
