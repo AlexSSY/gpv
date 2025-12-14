@@ -57,7 +57,7 @@ def load_slots() -> list[Slot]:
         response.raise_for_status()
         html_content = response.text
     except requests.exceptions.RequestException:
-        exit()
+        pass
     else:
         soup = BeautifulSoup(html_content, "html.parser")
         date_numbers = {}
@@ -85,9 +85,7 @@ def load_slots() -> list[Slot]:
                     case 3:
                         state = State.YELLOW
 
-                slots.append(
-                    Slot(time=time, state=state, i=idx)
-                )
+                slots.append(Slot(time=time, state=state, i=idx))
 
     return slots
 
@@ -98,6 +96,6 @@ if __name__ == "__main__":
             slot_minutes=30,
             now=datetime.now(),
             timezone="Europe/Kyiv",
-            slots=load_slots()
+            slots=load_slots(),
         ).model_dump_json()
     )
