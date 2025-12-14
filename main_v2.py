@@ -1,7 +1,9 @@
 #!/home/alex/code/python/gpv/.venv/bin/python
 # -*- coding: utf-8 -*-
 import enum
+import platform
 import requests
+from pathlib import Path
 from pydantic import BaseModel
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, time
@@ -90,12 +92,20 @@ def load_slots() -> list[Slot]:
     return slots
 
 
+def main():
+    result = Result(
+        slot_minutes=30,
+        now=datetime.now(),
+        timezone="Europe/Kyiv",
+        slots=load_slots(),
+    ).model_dump_json(indent=2)
+
+    if platform.system() == "Windows":
+        out = Path.home() / "Documents" / "Rainmeter" / "Skins" / "PowerWidget" / "power.json"
+        out.write_text(result, encoding="utf-8")
+    else:
+        print(result)
+
+
 if __name__ == "__main__":
-    print(
-        Result(
-            slot_minutes=30,
-            now=datetime.now(),
-            timezone="Europe/Kyiv",
-            slots=load_slots(),
-        ).model_dump_json()
-    )
+    main()
